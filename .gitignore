@@ -1,0 +1,10 @@
+build/
+.DS_Store
+.vscode/
+.idea/
+*.o
+*.a
+*.dylib
+*.exe
+*.swp
+*.swo
