@@ -17,7 +17,7 @@ const char *fragmentShaderSource = "#version 330 core\n"
     "out vec4 FragColor;\n"
     "void main()\n"
     "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+    "   FragColor = vec4(0.8f, 0.5f, 0.0f, 1.0f);\n"
     "}\n\0";
 
 void framebuffer_size_cb(GLFWwindow *window, GLint width, GLint height);
@@ -86,15 +86,16 @@ int main()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    GLfloat vertices [] = {
-        0.5f, 0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f,
-        -0.5f, 0.5f, 0.0f
+    GLfloat firstTri [] = {
+        -0.9f, -0.5f, 0.0f,
+        -0.0f, -0.5f, 0.0f,
+        -0.45f, 0.5f, 0.0f,
     };
-    GLint indices [] = {
-        0, 1, 3,
-        1, 2, 3
+
+    GLfloat secondTri [] = {
+        0.0f, -0.5f, -0.0f,
+        0.9f, -0.5f, 0.0f,
+        0.45f, 0.5f, 0.0f
     };
 
     /**
@@ -107,43 +108,47 @@ int main()
      * Stores which VBO to use and how to interpret the vertex data layout
      * Allows quick switching between different vertex setups with a single bind call
      */
-    GLuint VBO, VAO, EBO;
-    // Binding order: VAO before VBO before EBO
+    // Binding order: VAO before VBO
     // Binding in opengl is when we make certain objects the current object.
     // whenever we call a function that would modify these types of objects it will
     // modify the currently 'bound' object.
     // Make the VAO the current Vertex Array Object by binding it
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
 
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    // populates VBO Array Buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
+    GLuint VBOs[2], VAOs[2];
+    glGenVertexArrays(2, VAOs);
+    glGenBuffers(2, VBOs);
+    
+    //First Triangle
+    glBindVertexArray(VAOs[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+    // populates VBO Array Buffer and configures vertex attributes in VAO (TLDR; VAO gives us access to VBO data)
+    glBufferData(GL_ARRAY_BUFFER, sizeof(firstTri), firstTri, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    //Second Triangle
+    glBindVertexArray(VAOs[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(secondTri), secondTri, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0); // same location for vertex shader as first tri 
 
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.1f, 0.02f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-       
-        glBindVertexArray(VAO);
-        glUseProgram(shaderProgram);
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+
+
+        glUseProgram(shaderProgram); 
+        // Draw First Tri
+        glBindVertexArray(VAOs[0]);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        // Draw Second Tri
+        glBindVertexArray(VAOs[1]);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         // swap back buffer with the front
         glfwSwapBuffers(window);
