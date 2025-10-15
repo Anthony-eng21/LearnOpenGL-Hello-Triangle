@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-const unsigned int SCR_W = 800;
-const unsigned int SCR_H = 600;
+const GLuint SCR_W = 800;
+const GLuint SCR_H = 600;
 
 const char* vertexShaderSource = "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
@@ -20,7 +20,7 @@ const char *fragmentShaderSource = "#version 330 core\n"
     "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     "}\n\0";
 
-void framebuffer_size_cb(GLFWwindow *window, int width, int height);
+void framebuffer_size_cb(GLFWwindow *window, GLint width, GLint height);
 void processInput(GLFWwindow *window);
 
 int main()
@@ -51,12 +51,13 @@ int main()
         return -1;
     }
 
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    // we need to compile these ourselves or else it doesn't know how to be handled
     glCompileShader(vertexShader);
 
-    int success;
-    char infoLog[512];
+    GLint success;
+    GLchar infoLog[512];
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
 
     if(!success)
@@ -66,17 +67,9 @@ int main()
                   << infoLog << std::endl;
     }
 
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
 
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if(!success)
@@ -85,25 +78,50 @@ int main()
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
 
-    float vertices[] = {
-        0.5f, 0.5f, 0.0f,   // top right
-        0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f, // bottom left
-        -0.5f, 0.5f, 0.0f   // top left
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    GLfloat vertices [] = {
+        0.5f, 0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,
+        -0.5f, 0.5f, 0.0f
     };
-    unsigned int indices[] = {
-        0, 1, 3,  // first Triangle
-        1, 2, 3   // second Triangle
+    GLint indices [] = {
+        0, 1, 3,
+        1, 2, 3
     };
 
-    unsigned int VBO, VAO, EBO;
-    glGenBuffers(1, &VBO);
+    /**
+     * VBO: Vertex Buffer Object - GPU memory buffer storing vertex data (positions, colors, etc.)
+     * Allows efficient batch transfer of vertex arrays from CPU to GPU
+     */
+
+    /**
+     * VAO: vertex Array Object - State container that remembers vertex attribute configuration
+     * Stores which VBO to use and how to interpret the vertex data layout
+     * Allows quick switching between different vertex setups with a single bind call
+     */
+    GLuint VBO, VAO, EBO;
+    // Binding order: VAO before VBO before EBO
+    // Binding in opengl is when we make certain objects the current object.
+    // whenever we call a function that would modify these types of objects it will
+    // modify the currently 'bound' object.
+    // Make the VAO the current Vertex Array Object by binding it
     glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &EBO);
-
     glBindVertexArray(VAO);
 
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    // populates VBO Array Buffer
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -120,13 +138,14 @@ int main()
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        
+       
         glBindVertexArray(VAO);
         glUseProgram(shaderProgram);
         // glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
+        // swap back buffer with the front
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -135,7 +154,7 @@ int main()
     return 0;
 }
 
-void framebuffer_size_cb(GLFWwindow *window, int width, int height)
+void framebuffer_size_cb(GLFWwindow *window, GLint width, GLint height)
 {
     glViewport(0, 0, width, height);
 }
