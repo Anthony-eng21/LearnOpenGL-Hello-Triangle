@@ -13,11 +13,20 @@ const char* vertexShaderSource = "#version 330 core\n"
     "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
     "}\0";
 
+// gold-ish
 const char *fragmentShaderSource = "#version 330 core\n"
     "out vec4 FragColor;\n"
     "void main()\n"
     "{\n"
     "   FragColor = vec4(0.8f, 0.5f, 0.0f, 1.0f);\n"
+    "}\n\0";
+
+// red
+const char *_fragmentShaderSource = "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "void main()\n"
+    "{\n"
+    "   FragColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);\n"
     "}\n\0";
 
 void framebuffer_size_cb(GLFWwindow *window, GLint width, GLint height);
@@ -53,47 +62,38 @@ int main()
 
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    // we need to compile these ourselves or else it doesn't know how to be handled
     glCompileShader(vertexShader);
-
-    GLint success;
-    GLchar infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-
-    if(!success)
-    {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-                  << infoLog << std::endl;
-    }
 
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
 
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if(!success)
-    {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
+    GLuint _fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(_fragmentShader, 1, &_fragmentShaderSource, NULL);
+    glCompileShader(_fragmentShader);
 
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
 
+    GLuint _shaderProgram = glCreateProgram();
+    glAttachShader(_shaderProgram, vertexShader);
+    glAttachShader(_shaderProgram, _fragmentShader);
+    glLinkProgram(_shaderProgram);
+
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+    glDeleteShader(_fragmentShader);
 
     GLfloat firstTri [] = {
-        -0.9f, -0.5f, 0.0f,
-        -0.0f, -0.5f, 0.0f,
-        -0.45f, 0.5f, 0.0f,
+        -0.9f, -0.5f, 0.0f, // left
+        0.0f, -0.5f, 0.0f, // right
+        -0.45f, 0.5f, 0.0f, // top
     };
 
     GLfloat secondTri [] = {
-        0.0f, -0.5f, -0.0f,
+        0.0f, -0.5f, 0.0f,
         0.9f, -0.5f, 0.0f,
         0.45f, 0.5f, 0.0f
     };
@@ -133,11 +133,13 @@ int main()
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0); // same location for vertex shader as first tri 
 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE_SMOOTH);
+
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
 
-        glClearColor(0.1f, 0.02f, 0.5f, 1.0f);
+        glClearColor(0.5f, 0.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
 
@@ -147,6 +149,7 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         // Draw Second Tri
+        glUseProgram(_shaderProgram);
         glBindVertexArray(VAOs[1]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -154,6 +157,12 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    // FREE UP OpenGL Resources
+    glDeleteVertexArrays(2, VAOs);
+    glDeleteBuffers(2, VBOs);
+    glDeleteProgram(shaderProgram);
+    glDeleteProgram(_shaderProgram);
 
     glfwTerminate();
     return 0;
